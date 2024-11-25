@@ -1,29 +1,24 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Column } from "react-table";
-import ImageAndName from "../../components/imageAndName";
+import { useEffect, useState } from "react";
 import WrapperCard from "../../components/Cards/WrapperCard";
-import { useNavigate } from "react-router-dom";
-import MyTable from "../../components/Table/Table";
-import formatDate from "../../hooks/getDate";
-import { Box, HStack, IconButton } from "@chakra-ui/react";
-import { MdDelete } from "react-icons/md";
+import { Box } from "@chakra-ui/react";
 import useLoadingStore from "../../zustand/globalLoadingState";
 import axios from "axios";
 import { Base_Url } from "../../hooks/api";
 import useMessageStore from "../../zustand/messageStore";
 import CustomHeading from "../../components/Topography/Heading1";
 import EmployeeTable from "./EmployeeList/employeeList";
+import { Employees } from "./EmployeeList/data";
 
 function EmployeeList() {
   const { loading, setLoading } = useLoadingStore();
   const { setError, setMessage } = useMessageStore();
-  const [empList, setEmpList] = useState([]);
+  const [empList, setEmpList] = useState<Employees[]>([]);
 
   useEffect(() => {
-    getCompanyList();
+    getEmployeeList();
   }, []);
 
-  const getCompanyList = async () => {
+  const getEmployeeList = async () => {
     const token = localStorage.getItem("token");
     setLoading(true);
     await axios
@@ -50,6 +45,68 @@ function EmployeeList() {
       });
   };
 
+  // Handle the delete action
+  const handleDelete = async (empId: string) => {
+    const token = localStorage.getItem("token");
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        `${Base_Url}deleteMyEmoloyee`,
+        { empId: empId },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response?.data?.status) {
+        setMessage("Employee deleted successfully!");
+        setEmpList((prevData) =>
+          prevData.filter((employee) => employee._id !== empId)
+        );
+      } else {
+        setError(response?.data?.message || "Failed to delete the employee");
+      }
+    } catch (error: any) {
+      console.error("Error deleting employee:", error);
+      setError(error.response?.data?.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle the delete action
+  const handleUpdateStatus = async (empId: string, status: boolean) => {
+    const token = localStorage.getItem("token");
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        `${Base_Url}updateStatus`,
+        { empId: empId, status: status },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response?.data?.status) {
+        setMessage("Employee status updated successfully!");
+        setEmpList((prevData) =>
+          prevData.map((employee) =>
+            employee._id === empId ? { ...employee, status: status } : employee
+          )
+        );
+      } else {
+        setError(response?.data?.message || "Failed to update employee status");
+      }
+    } catch (error: any) {
+      console.error("Error updating employee status:", error);
+      setError(error.response?.data?.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <WrapperCard>
       <CustomHeading
@@ -60,7 +117,11 @@ function EmployeeList() {
         Employees List
       </CustomHeading>
       <Box mt={12}>
-        <EmployeeTable empData={empList} />
+        <EmployeeTable
+          empData={empList}
+          handleDelete={handleDelete}
+          handleUpdateStatus={handleUpdateStatus}
+        />
       </Box>
     </WrapperCard>
   );
