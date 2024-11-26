@@ -75,7 +75,7 @@ function EmployeeList() {
     }
   };
 
-  // Handle the delete action
+  // Handle the update status
   const handleUpdateStatus = async (empId: string, status: boolean) => {
     const token = localStorage.getItem("token");
     setLoading(true);
